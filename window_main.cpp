@@ -5,19 +5,21 @@
 #include <algorithm>
 #include "Car.h"
 #include "Obstacle.h"
+#include "Resources.h"
 
 using namespace sf;
+
+const float initialSpawnInterval = 8000.0f; // Начальное время между спавнами (в микросекундах)
+const float minSpawnInterval = 3500.0f;     // Минимальное время между спавнами (в микросекундах)
 
 int rightBoarder = 1419, leftBoarder = 390;
 float acceleration = 0.00001;
 const float maxAcceleration = 1.0;
 bool onMenu = true, inGame = false, onEndScreen = false;
 
-// Диапазоны точек появления
-const int range1_min = 500, range1_max = 800;
-const int range2_min = 1100, range2_max = 1400;
+const int range1_min = 520, range1_max = 890;
+const int range2_min = 990, range2_max = 1390;
 
-// Функция для создания новых препятствий
 void createObstacles(std::vector<Obstacle>& obstacles, std::vector<Texture>& textures) {
     int numObstacles = rand() % 3 + 1; // Случайное количество препятствий от 1 до 3
 
@@ -34,12 +36,21 @@ void createObstacles(std::vector<Obstacle>& obstacles, std::vector<Texture>& tex
 
             int randomIndex = rand() % textures.size();
             Obstacle newObstacle(textures[randomIndex]);
-            if (randomPoint < 1100) {
-                newObstacle.sprite.setRotation(180);
+            if (randomPoint < 1050) {
+                newObstacle.setRotation(180); // Используем метод setRotation
             }
             newObstacle.setPosition(static_cast<float>(randomPoint), -200);
 
-            // Проверка пересечения с существующими препятствиями
+            // Устанавливаем множитель скорости в зависимости от позиции
+            float speedMultiplier;
+            if ((randomPoint >= 500 && randomPoint <= 665) || (randomPoint >= 1250 && randomPoint <= 1390)) {
+                speedMultiplier = 1.2f;
+            }
+            else {
+                speedMultiplier = 1.5f;
+            }
+            newObstacle.setSpeedMultiplier(speedMultiplier);
+
             bool intersects = false;
             for (const auto& obstacle : obstacles) {
                 if (newObstacle.getRect().intersects(obstacle.getRect())) {
@@ -55,21 +66,19 @@ void createObstacles(std::vector<Obstacle>& obstacles, std::vector<Texture>& tex
             }
         }
 
-        // Если не нашли валидную позицию, продолжаем к следующему препятствию
         if (!validPositionFound) {
             break;
         }
     }
 }
 
-// Функция для удаления препятствий, которые вышли за границу экрана
+
 void removeOffscreenObstacles(std::vector<Obstacle>& obstacles) {
     obstacles.erase(std::remove_if(obstacles.begin(), obstacles.end(), [](const Obstacle& obstacle) {
-        return obstacle.getRect().top > 1080;  // Используем метод getRect
+        return obstacle.getRect().top > 1080;
         }), obstacles.end());
 }
 
-// Функция для проверки столкновения
 bool checkCollision(const Car& car, const std::vector<Obstacle>& obstacles) {
     sf::FloatRect carRect = car.getRect();
     for (const auto& obstacle : obstacles) {
@@ -84,62 +93,61 @@ int main() {
     RenderWindow window(VideoMode(1920, 1080), "GUAP RACING CLUB!");
 
     Clock clock;
-    Texture tcar, tRoad, tBackGround, tStartButton, tCar1, tCar2, tCar3;
-    tStartButton.loadFromFile("SB.png");
-    tcar.loadFromFile("car.png");
-    tRoad.loadFromFile("road2.jpg");
-    tBackGround.loadFromFile("BG.jpg");
-    tCar1.loadFromFile("acetone.png");
-    tCar2.loadFromFile("Ferrari.png"); // Загрузка дополнительных текстур
-    tCar3.loadFromFile("citroen.png");
+    Resources resources;
 
-    std::vector<Texture> obstacleTextures = { tCar1, tCar2, tCar3 }; // Вектор текстур для препятствий
-
-    Sprite road, startButton, backGround;
+    Sprite road, startButton, backGround, endScreen;
     startButton.setPosition(680, 270);
-    startButton.setTexture(tStartButton);
+    startButton.setTexture(resources.tStartButton);
     startButton.setScale(0.8, 0.8);
     backGround.setPosition(0, 0);
-    backGround.setTexture(tBackGround);
+    backGround.setTexture(resources.tBackGround);
+    endScreen.setPosition(0, 0);
+    endScreen.setTexture(resources.tEndScreen); // Установка текстуры для энд скрина
 
-    std::vector<Obstacle> obstacles; // Вектор для хранения объектов препятствий
+    std::vector<Obstacle> obstacles;
 
-    Car car(tcar);
+    Car car(resources.tcar);
     car.sprite.setPosition(560, 770);
 
     float CurrentFrame = 0;
     road.setPosition(0, 0);
-    road.setTexture(tRoad);
+    road.setTexture(resources.tRoad);
 
-    srand(static_cast<unsigned int>(time(0))); // Инициализация генератора случайных чисел
+    srand(static_cast<unsigned int>(time(0)));
 
     while (window.isOpen()) {
         Event event;
-        while (onMenu) {
-            while (window.pollEvent(event)) {
-                if (event.type == Event::Closed) {
-                    window.close();
-                }
-                // Проверка нажатия мыши
-                if (event.type == Event::MouseButtonPressed) {
-                    if (event.mouseButton.button == Mouse::Left) {
-                        Vector2i mousePosition = Mouse::getPosition(window);
-                        // Проверка, попадает ли курсор в границы кнопки
-                        if (startButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
-                            onMenu = false;
-                            inGame = true;
-                        }
-                    }
+        while (window.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                window.close();
+            }
+            if (onMenu && event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {
+                Vector2i mousePosition = Mouse::getPosition(window);
+                if (startButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
+                    onMenu = false;
+                    inGame = true;
                 }
             }
+            if (inGame && event.type == Event::KeyPressed && event.key.code == Keyboard::Escape) {
+                inGame = false;
+                onMenu = true;
+            }
+            if (onEndScreen && event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
+                onEndScreen = false;
+                inGame = true;
+                obstacles.clear();
+                car.sprite.setPosition(560, 770);
+                acceleration = 0.00001;
+            }
+        }
 
+        if (onMenu) {
             window.clear();
             window.draw(backGround);
             window.draw(startButton);
             window.display();
         }
-
-        while (inGame) {
+        else if (inGame) {
             if (acceleration < maxAcceleration) {
                 acceleration += 0.000010;
             }
@@ -148,26 +156,23 @@ int main() {
             time /= 400;
             clock.restart();
 
-            while (window.pollEvent(event)) {
-                if (event.type == Event::Closed) {
-                    window.close();
-                }
-            }
-
-            // Появление новых препятствий с интервалом времени
             static float spawnTimer = 0;
             spawnTimer += time;
-            if (spawnTimer > 3333) { // Каждые 3.33 секунды 
-                createObstacles(obstacles, obstacleTextures);
+
+            // Линейная интерполяция времени между спавнами в зависимости от ускорения
+            float spawnInterval = initialSpawnInterval - ((initialSpawnInterval - minSpawnInterval) * (acceleration / maxAcceleration));
+
+            if (spawnTimer > spawnInterval) {
+                createObstacles(obstacles, resources.obstacleTextures);
                 spawnTimer = 0;
             }
 
-            // Обновление и отрисовка препятствий
             for (auto& obstacle : obstacles) {
-                obstacle.update(time, acceleration); // Обновляем с учетом ускорения
+                float x = obstacle.getSprite().getPosition().x;
+                float speedMultiplier = (x >= 500 && x <= 750) || (x >= 1200 && x <= 1400) ? 1.2f : 1.5f;
+                obstacle.update(time, acceleration, speedMultiplier);
             }
 
-            // Удаление препятствий, которые ушли за границу экрана
             removeOffscreenObstacles(obstacles);
 
             CurrentFrame += 0.006 * time;
@@ -176,21 +181,15 @@ int main() {
             }
             road.setTextureRect(IntRect(0, 500 * int(CurrentFrame), 1920, 1080));
 
-            if (Keyboard::isKeyPressed(Keyboard::Escape)) {
-                inGame = false;
-                onMenu = true;
-            }
-
             if (Keyboard::isKeyPressed(Keyboard::A)) {
-                car.moveX(-0.7);
+                car.moveX(-0.9);
             }
             if (Keyboard::isKeyPressed(Keyboard::D)) {
-                car.moveX(0.7);
+                car.moveX(0.9);
             }
 
             car.update(time, acceleration);
 
-            // Проверка столкновений
             if (checkCollision(car, obstacles)) {
                 inGame = false;
                 onEndScreen = true;
@@ -200,29 +199,15 @@ int main() {
             window.draw(road);
             window.draw(car.sprite);
             for (const auto& obstacle : obstacles) {
-                window.draw(obstacle.sprite);
+                window.draw(obstacle.getSprite());
             }
             window.display();
         }
 
-        while (onEndScreen) {
-            while (window.pollEvent(event)) {
-                if (event.type == Event::Closed) {
-                    window.close();
-                }
-                // Проверка нажатия клавиши для перезапуска игры
-                if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
-                    onEndScreen = false;
-                    onMenu = true;
-                    obstacles.clear();
-                    car.sprite.setPosition(560, 770);
-                    acceleration = 0.00001;
-                }
-            }
 
+        else if (onEndScreen) {
             window.clear();
-            window.draw(backGround);
-            window.draw(startButton);
+            window.draw(endScreen); // Отображение энд скрина
             window.display();
         }
     }

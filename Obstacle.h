@@ -2,18 +2,20 @@
 #include <SFML/Graphics.hpp>
 
 class Obstacle {
-public:
-    Obstacle(sf::Texture& t);
-    void update(float time, float acceleration);
-    sf::Sprite sprite;
-
-    void setPosition(float x, float y); // Метод установки позиции
-    sf::FloatRect getRect() const;     // Метод получения прямоугольника
-
 private:
-    sf::FloatRect rect;
-    float dx;
-    float dy;
-    bool onRoad;
-    float currentFrame;
+    sf::Sprite sprite;
+    float speedMultiplier; // Новый атрибут для случайного множителя скорости
+
+public:
+    Obstacle(const sf::Texture& texture);
+
+    void setPosition(float x, float y);
+    sf::FloatRect getRect() const;
+    void update(float time, float acceleration, bool faster);
+
+    sf::Sprite getSprite() const;
+    void setRotation(float angle);
+
+    void setSpeedMultiplier(float multiplier); // Новый метод для установки множителя скорости
+    float getSpeedMultiplier() const;          // Новый метод для получения множителя скорости
 };

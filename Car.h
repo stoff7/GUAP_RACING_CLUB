@@ -18,5 +18,5 @@ private:
     bool inCenter;        // Флаг, указывающий, что машина в центре
     float dx;             // Смещение по оси x
     float dy;             // Смещение по оси y
-    const float rectOffset = 0.0f; // Смещение для уменьшения прямоугольника
+    const float rectOffset = 15.0f; // Смещение для уменьшения прямоугольника
 };

@@ -24,6 +24,9 @@
     <ClCompile Include="Car.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="Resources.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="sfml-window-d-2.dll" />
@@ -43,6 +46,9 @@
       <Filter>Исходные файлы</Filter>
     </ClInclude>
     <ClInclude Include="Car.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
   </ItemGroup>
