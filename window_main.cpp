@@ -1,23 +1,61 @@
 #include <SFML/Graphics.hpp>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
 #include "Car.h"
 #include "Obstacle.h"
 
 using namespace sf;
 
 int rightBoarder = 1419, leftBoarder = 390;
-float acceleration = 1;
+float acceleration = 0.00001;
+const float maxAcceleration = 1.0;
 bool onMenu = true, inGame = false, onEndScreen = false;
+
+// Массив точек появления
+const std::vector<int> spawnPoints = { 500, 800, 1100, 1400 };
+
+// Функция для создания новых препятствий
+void createObstacles(std::vector<Obstacle>& obstacles, std::vector<Texture>& textures) {
+    int numObstacles = rand() % 3 + 1; // Случайное количество препятствий от 1 до 3
+    std::vector<int> availablePoints = spawnPoints;
+
+    for (int i = 0; i < numObstacles; ++i) {
+        if (availablePoints.empty()) {
+            break;
+        }
+        int pointIndex = rand() % availablePoints.size();
+        int randomPoint = availablePoints[pointIndex];
+        availablePoints.erase(availablePoints.begin() + pointIndex);
+
+        int randomIndex = rand() % textures.size();
+        Obstacle newObstacle(textures[randomIndex]);
+        newObstacle.setPosition(static_cast<float>(randomPoint), -100);  // Используем метод setPosition
+        obstacles.push_back(newObstacle);
+    }
+}
+
+// Функция для удаления препятствий, которые вышли за границу экрана
+void removeOffscreenObstacles(std::vector<Obstacle>& obstacles) {
+    obstacles.erase(std::remove_if(obstacles.begin(), obstacles.end(), [](const Obstacle& obstacle) {
+        return obstacle.getRect().top > 1080;  // Используем метод getRect
+        }), obstacles.end());
+}
 
 int main() {
     RenderWindow window(VideoMode(1920, 1080), "GUAP RACING CLUB!");
 
     Clock clock;
-    Texture tcar, tRoad, tBackGround, tStartButton, tCar1;
+    Texture tcar, tRoad, tBackGround, tStartButton, tCar1, tCar2, tCar3;
     tStartButton.loadFromFile("SB.png");
     tcar.loadFromFile("car.png");
     tRoad.loadFromFile("road2.jpg");
     tBackGround.loadFromFile("BG.jpg");
     tCar1.loadFromFile("acetone.png");
+    tCar2.loadFromFile("Ferrari.png"); // Загрузка дополнительных текстур
+    tCar3.loadFromFile("citroen.png");
+
+    std::vector<Texture> obstacleTextures = { tCar1, tCar2, tCar3 }; // Вектор текстур для препятствий
 
     Sprite road, startButton, backGround;
     startButton.setPosition(680, 270);
@@ -26,9 +64,7 @@ int main() {
     backGround.setPosition(0, 0);
     backGround.setTexture(tBackGround);
 
-    Obstacle pit(tCar1);
-    pit.sprite.setPosition(981, 330);
-    pit.sprite.setScale(0.4, 0.5);
+    std::vector<Obstacle> obstacles; // Вектор для хранения объектов препятствий
 
     Car car(tcar);
     car.sprite.setPosition(560, 770);
@@ -36,6 +72,8 @@ int main() {
     float CurrentFrame = 0;
     road.setPosition(0, 0);
     road.setTexture(tRoad);
+
+    srand(static_cast<unsigned int>(time(0))); // Инициализация генератора случайных чисел
 
     while (window.isOpen()) {
         Event event;
@@ -55,10 +93,6 @@ int main() {
                         }
                     }
                 }
-                if (Keyboard::isKeyPressed(Keyboard::Enter)) {
-                    onMenu = false;
-                    inGame = true;
-                }
             }
 
             window.clear();
@@ -68,7 +102,9 @@ int main() {
         }
 
         while (inGame) {
-            acceleration += 0.005;
+            if (acceleration < maxAcceleration) {
+                acceleration += 0.000005;
+            }
 
             float time = clock.getElapsedTime().asMicroseconds();
             time /= 500;
@@ -79,6 +115,22 @@ int main() {
                     window.close();
                 }
             }
+
+            // Появление новых препятствий с интервалом времени
+            static float spawnTimer = 0;
+            spawnTimer += time;
+            if (spawnTimer > 5000) { // Каждые 5 секунд
+                createObstacles(obstacles, obstacleTextures);
+                spawnTimer = 0;
+            }
+
+            // Обновление и отрисовка препятствий
+            for (auto& obstacle : obstacles) {
+                obstacle.update(time, acceleration); // Обновляем с учетом ускорения
+            }
+
+            // Удаление препятствий, которые ушли за границу экрана
+            removeOffscreenObstacles(obstacles);
 
             CurrentFrame += 0.006 * time;
             if (CurrentFrame > 3) {
@@ -99,12 +151,13 @@ int main() {
             }
 
             car.update(time);
-            pit.update(time);
 
             window.clear();
             window.draw(road);
             window.draw(car.sprite);
-            window.draw(pit.sprite);
+            for (const auto& obstacle : obstacles) {
+                window.draw(obstacle.sprite);
+            }
             window.display();
         }
     }

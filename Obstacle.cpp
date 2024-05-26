@@ -1,19 +1,22 @@
 #include "Obstacle.h"
 
-Obstacle::Obstacle(sf::Texture& t) : dx(0), dy(0.5), onRoad(true), currentFrame(0) {
+Obstacle::Obstacle(sf::Texture& t) : dx(0), dy(1), onRoad(true), currentFrame(0) {
     sprite.setTexture(t);
-    rect = sf::FloatRect(1000, 0, 109, 206);
+    rect = sf::FloatRect(0, 0, 109, 206);
+    sprite.setOrigin(rect.width / 2, rect.height / 2);
 }
 
-void Obstacle::update(float time) {
-    if ((rect.top - dy * time) < 1080 && onRoad) {
-        onRoad = false;
-    }
-    else {
-        onRoad = false;
-    }
-    if (onRoad) {
-        rect.top -= dy * time;
-    }
+void Obstacle::update(float time, float acceleration) {
+    rect.top += dy * time * acceleration;
     sprite.setPosition(rect.left, rect.top);
+}
+
+void Obstacle::setPosition(float x, float y) {
+    rect.left = x;
+    rect.top = y;
+    sprite.setPosition(x, y);
+}
+
+sf::FloatRect Obstacle::getRect() const {
+    return rect;
 }
