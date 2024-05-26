@@ -12,12 +12,12 @@ int main() {
     RenderWindow window(VideoMode(1920, 1080), "GUAP RACING CLUB!");
 
     Clock clock;
-    Texture tcar, tRoad, tBackGround, tStartButton, tPit;
+    Texture tcar, tRoad, tBackGround, tStartButton, tCar1;
     tStartButton.loadFromFile("SB.png");
     tcar.loadFromFile("car.png");
     tRoad.loadFromFile("road2.jpg");
     tBackGround.loadFromFile("BG.jpg");
-    tPit.loadFromFile("Pit.png");
+    tCar1.loadFromFile("acetone.png");
 
     Sprite road, startButton, backGround;
     startButton.setPosition(680, 270);
@@ -26,9 +26,9 @@ int main() {
     backGround.setPosition(0, 0);
     backGround.setTexture(tBackGround);
 
-    Obstacle pit(tPit);
+    Obstacle pit(tCar1);
     pit.sprite.setPosition(981, 330);
-    pit.sprite.setScale(0.6, 0.7);
+    pit.sprite.setScale(0.4, 0.5);
 
     Car car(tcar);
     car.sprite.setPosition(560, 770);
@@ -44,16 +44,29 @@ int main() {
                 if (event.type == Event::Closed) {
                     window.close();
                 }
+                // Проверка нажатия мыши
+                if (event.type == Event::MouseButtonPressed) {
+                    if (event.mouseButton.button == Mouse::Left) {
+                        Vector2i mousePosition = Mouse::getPosition(window);
+                        // Проверка, попадает ли курсор в границы кнопки
+                        if (startButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
+                            onMenu = false;
+                            inGame = true;
+                        }
+                    }
+                }
+                if (Keyboard::isKeyPressed(Keyboard::Enter)) {
+                    onMenu = false;
+                    inGame = true;
+                }
             }
-            if (Keyboard::isKeyPressed(Keyboard::Enter)) {
-                onMenu = false;
-                inGame = true;
-            }
+
             window.clear();
             window.draw(backGround);
             window.draw(startButton);
             window.display();
         }
+
         while (inGame) {
             acceleration += 0.005;
 
