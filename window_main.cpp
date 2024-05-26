@@ -13,7 +13,7 @@ const float maxAcceleration = 1.0;
 bool onMenu = true, inGame = false, onEndScreen = false;
 
 // Массив точек появления
-const std::vector<int> spawnPoints = { 500, 800, 1100, 1400 };
+const std::vector<int> spawnPoints = { 500, 650, 800, 1100, 1250, 1400 };
 
 // Функция для создания новых препятствий
 void createObstacles(std::vector<Obstacle>& obstacles, std::vector<Texture>& textures) {
@@ -30,6 +30,9 @@ void createObstacles(std::vector<Obstacle>& obstacles, std::vector<Texture>& tex
 
         int randomIndex = rand() % textures.size();
         Obstacle newObstacle(textures[randomIndex]);
+        if (randomPoint < 1100){
+            newObstacle.sprite.setRotation(180);
+        }
         newObstacle.setPosition(static_cast<float>(randomPoint), -100);  // Используем метод setPosition
         obstacles.push_back(newObstacle);
     }
@@ -103,11 +106,11 @@ int main() {
 
         while (inGame) {
             if (acceleration < maxAcceleration) {
-                acceleration += 0.000005;
+                acceleration += 0.000010;
             }
 
             float time = clock.getElapsedTime().asMicroseconds();
-            time /= 500;
+            time /= 400;
             clock.restart();
 
             while (window.pollEvent(event)) {
@@ -150,7 +153,7 @@ int main() {
                 car.dx = 0.7;
             }
 
-            car.update(time);
+            car.update(time, acceleration);
 
             window.clear();
             window.draw(road);
