@@ -8,7 +8,7 @@ Obstacle::Obstacle(sf::Texture& t) : dx(0), dy(1), onRoad(true), currentFrame(0)
 
 void Obstacle::update(float time, float acceleration) {
     rect.top += dy * time * acceleration;
-    sprite.setPosition(rect.left, rect.top);
+    sprite.setPosition(rect.left + rect.width / 2, rect.top + rect.height / 2); // Центрирование позиции
 }
 
 void Obstacle::setPosition(float x, float y) {
@@ -18,5 +18,5 @@ void Obstacle::setPosition(float x, float y) {
 }
 
 sf::FloatRect Obstacle::getRect() const {
-    return rect;
+    return sf::FloatRect(rect.left, rect.top, rect.width, rect.height);
 }

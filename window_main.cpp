@@ -2,6 +2,7 @@
 #include <vector>
 #include <ctime>
 #include <cstdlib>
+#include <algorithm>
 #include "Car.h"
 #include "Obstacle.h"
 
@@ -12,29 +13,52 @@ float acceleration = 0.00001;
 const float maxAcceleration = 1.0;
 bool onMenu = true, inGame = false, onEndScreen = false;
 
-// Массив точек появления
-const std::vector<int> spawnPoints = { 500, 650, 800, 1100, 1250, 1400 };
+// Диапазоны точек появления
+const int range1_min = 500, range1_max = 800;
+const int range2_min = 1100, range2_max = 1400;
 
 // Функция для создания новых препятствий
 void createObstacles(std::vector<Obstacle>& obstacles, std::vector<Texture>& textures) {
     int numObstacles = rand() % 3 + 1; // Случайное количество препятствий от 1 до 3
-    std::vector<int> availablePoints = spawnPoints;
 
     for (int i = 0; i < numObstacles; ++i) {
-        if (availablePoints.empty()) {
+        bool validPositionFound = false;
+        for (int attempts = 0; attempts < 10; ++attempts) { // Даем до 10 попыток для поиска валидной позиции
+            int randomPoint;
+            if (rand() % 2 == 0) {
+                randomPoint = rand() % (range1_max - range1_min + 1) + range1_min;
+            }
+            else {
+                randomPoint = rand() % (range2_max - range2_min + 1) + range2_min;
+            }
+
+            int randomIndex = rand() % textures.size();
+            Obstacle newObstacle(textures[randomIndex]);
+            if (randomPoint < 1100) {
+                newObstacle.sprite.setRotation(180);
+            }
+            newObstacle.setPosition(static_cast<float>(randomPoint), -200);
+
+            // Проверка пересечения с существующими препятствиями
+            bool intersects = false;
+            for (const auto& obstacle : obstacles) {
+                if (newObstacle.getRect().intersects(obstacle.getRect())) {
+                    intersects = true;
+                    break;
+                }
+            }
+
+            if (!intersects) {
+                obstacles.push_back(newObstacle);
+                validPositionFound = true;
+                break;
+            }
+        }
+
+        // Если не нашли валидную позицию, продолжаем к следующему препятствию
+        if (!validPositionFound) {
             break;
         }
-        int pointIndex = rand() % availablePoints.size();
-        int randomPoint = availablePoints[pointIndex];
-        availablePoints.erase(availablePoints.begin() + pointIndex);
-
-        int randomIndex = rand() % textures.size();
-        Obstacle newObstacle(textures[randomIndex]);
-        if (randomPoint < 1100){
-            newObstacle.sprite.setRotation(180);
-        }
-        newObstacle.setPosition(static_cast<float>(randomPoint), -100);  // Используем метод setPosition
-        obstacles.push_back(newObstacle);
     }
 }
 
@@ -43,6 +67,17 @@ void removeOffscreenObstacles(std::vector<Obstacle>& obstacles) {
     obstacles.erase(std::remove_if(obstacles.begin(), obstacles.end(), [](const Obstacle& obstacle) {
         return obstacle.getRect().top > 1080;  // Используем метод getRect
         }), obstacles.end());
+}
+
+// Функция для проверки столкновения
+bool checkCollision(const Car& car, const std::vector<Obstacle>& obstacles) {
+    sf::FloatRect carRect = car.getRect();
+    for (const auto& obstacle : obstacles) {
+        if (carRect.intersects(obstacle.getRect())) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int main() {
@@ -122,7 +157,7 @@ int main() {
             // Появление новых препятствий с интервалом времени
             static float spawnTimer = 0;
             spawnTimer += time;
-            if (spawnTimer > 5000) { // Каждые 5 секунд
+            if (spawnTimer > 3333) { // Каждые 3.33 секунды 
                 createObstacles(obstacles, obstacleTextures);
                 spawnTimer = 0;
             }
@@ -147,13 +182,19 @@ int main() {
             }
 
             if (Keyboard::isKeyPressed(Keyboard::A)) {
-                car.dx = -0.7;
+                car.moveX(-0.7);
             }
             if (Keyboard::isKeyPressed(Keyboard::D)) {
-                car.dx = 0.7;
+                car.moveX(0.7);
             }
 
             car.update(time, acceleration);
+
+            // Проверка столкновений
+            if (checkCollision(car, obstacles)) {
+                inGame = false;
+                onEndScreen = true;
+            }
 
             window.clear();
             window.draw(road);
@@ -161,6 +202,27 @@ int main() {
             for (const auto& obstacle : obstacles) {
                 window.draw(obstacle.sprite);
             }
+            window.display();
+        }
+
+        while (onEndScreen) {
+            while (window.pollEvent(event)) {
+                if (event.type == Event::Closed) {
+                    window.close();
+                }
+                // Проверка нажатия клавиши для перезапуска игры
+                if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
+                    onEndScreen = false;
+                    onMenu = true;
+                    obstacles.clear();
+                    car.sprite.setPosition(560, 770);
+                    acceleration = 0.00001;
+                }
+            }
+
+            window.clear();
+            window.draw(backGround);
+            window.draw(startButton);
             window.display();
         }
     }
