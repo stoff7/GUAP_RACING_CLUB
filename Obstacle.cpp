@@ -62,10 +62,10 @@ void Obstacle::createObstacles(std::vector<Obstacle>& obstacles, std::vector<sf:
             // Устанавливаем множитель скорости в зависимости от позиции
             float speedMultiplier;
             if ((randomPoint >= 500 && randomPoint <= 665)) {
-                speedMultiplier = 1.5f;
+                speedMultiplier = 2.2f;
             }
             else if ((randomPoint >= 665 && randomPoint <= 980)) {
-                speedMultiplier = 1.7f;
+                speedMultiplier = 2.5f;
             }
             else if ((randomPoint >= 1250 && randomPoint <= 1390))
             {

@@ -3,6 +3,10 @@
 Resources::Resources() {
     // Загрузка текстур для игры
     tStartButton.loadFromFile("startButton.png");
+    tPauseButton.loadFromFile("pauseButton.png");
+    tPauseMenu.loadFromFile("pauseMenu.png");
+    tMenuButton.loadFromFile("menuButton.png");
+    tRestartButton.loadFromFile("restartButton.png");
     tcar.loadFromFile("car.png");
     tRoad.loadFromFile("road2.jpg");
     tBackGround.loadFromFile("BG.png");
