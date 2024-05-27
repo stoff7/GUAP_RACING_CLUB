@@ -2,8 +2,8 @@
 #include <cstdlib>
 #include <algorithm>
 
-const int range1_min = 520, range1_max = 860;
-const int range2_min = 960, range2_max = 1390;
+const int range1_min = 480, range1_max = 900;
+const int range2_min = 1000, range2_max = 1420;
 
 Obstacle::Obstacle(const sf::Texture& texture) : speedMultiplier(1.0f) { // Инициализация множителя скорости
     sprite.setTexture(texture);
@@ -54,19 +54,27 @@ void Obstacle::createObstacles(std::vector<Obstacle>& obstacles, std::vector<sf:
 
             int randomIndex = rand() % textures.size();
             Obstacle newObstacle(textures[randomIndex]);
-            if (randomPoint < 1050) {
+            if (randomPoint < 1000) {
                 newObstacle.setRotation(180); // Используем метод setRotation
             }
             newObstacle.setPosition(static_cast<float>(randomPoint), -200);
 
             // Устанавливаем множитель скорости в зависимости от позиции
             float speedMultiplier;
-            if ((randomPoint >= 500 && randomPoint <= 665) || (randomPoint >= 1250 && randomPoint <= 1390)) {
-                speedMultiplier = 1.2f;
-            }
-            else {
+            if ((randomPoint >= 500 && randomPoint <= 665)) {
                 speedMultiplier = 1.5f;
             }
+            else if ((randomPoint >= 665 && randomPoint <= 980)) {
+                speedMultiplier = 1.7f;
+            }
+            else if ((randomPoint >= 1250 && randomPoint <= 1390))
+            {
+                speedMultiplier = 1.5f;
+            }
+            else
+            {
+                speedMultiplier = 1.2f;
+            };
             newObstacle.setSpeedMultiplier(speedMultiplier);
 
             bool intersects = false;

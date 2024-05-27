@@ -17,12 +17,12 @@ void Car::update(float time, float acceleration) {
         inCenter = true;
         centerStayTime += time;
         // Если машина слишком долго находится в центре, переместить её
-        if (centerStayTime > 400) { // 2000 микросекунд - лимит времени
-            if (nextPositionX > rect.left) {
-                rect.left += 10;
+        if (centerStayTime > 400) { // 400 микросекунд - лимит времени
+            if (nextPositionX < rect.left) {
+                rect.left -= 10;
             }
             else {
-                rect.left -= 10;
+                rect.left += 10;
             }
             inCenter = false;
             centerStayTime -= 100;
