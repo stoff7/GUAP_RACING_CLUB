@@ -8,6 +8,10 @@ Car::Car(sf::Texture& t) : dx(0), dy(0), onRoad(true), hasCollision(false), curr
     rect = sf::FloatRect(1000, 770, 109, 206); // Убедимся, что начальная позиция правильная
 }
 
+void Car::setInitialPosition(){
+    rect.left = 1000 ;
+}
+
 void Car::update(float time, float acceleration) {
     float nextPositionX = rect.left + dx * time * acceleration;
     float nextPositionY = rect.top + dy * time * acceleration;

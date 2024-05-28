@@ -19,6 +19,7 @@ Resources::Resources() {
     tCar6.loadFromFile("cabri1.png");
     tCar7.loadFromFile("white.png");
     tCar8.loadFromFile("bugga.png");
+    tScoreTable.loadFromFile("scoreTable.png");
     tSettingsButton.loadFromFile("settings.png"); // Загрузка текстуры для кнопки настроек
     tExitButton.loadFromFile("exit.png"); // Загрузка текстуры для кнопки выхода
     tVolumeScaler.loadFromFile("volumeScaler.png"); // Загрузка текстуры для ползунка громкости
@@ -26,6 +27,11 @@ Resources::Resources() {
     tBackGroundSettings.loadFromFile("BackGroundSettings.png");
     menuMusic.openFromFile("menu.ogg");
     gameMusic.openFromFile("game.ogg");
+    font.loadFromFile("carbon2.otf");
     // Инициализация вектора текстур для препятствий
     obstacleTextures = { tCar1, tCar2, tCar3, tCar4, tCar5, tCar6, tCar7, tCar8 };
+
+    //Инициализация шрифта
+    gameTimeText.setFont(font);
+    maxTime.setFont(font);
 }

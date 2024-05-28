@@ -1,4 +1,4 @@
-#include <SFML/Graphics.hpp>
+﻿#include <SFML/Graphics.hpp>
 #include <vector>
 #include <ctime>
 #include <cstdlib>
@@ -15,6 +15,7 @@ const float minSpawnInterval = 3500.0f;
 int rightBoarder = 1419, leftBoarder = 390;
 float acceleration = 0.000005;
 const float maxAcceleration = 0.5;
+float maxGameTime = 0;
 
 float roadY = 0;
 float roadSpeed = 3.0f;
@@ -57,7 +58,7 @@ void hoverEffect(Sprite& button, Vector2i mousePosition, float scaleFactor = 1.1
 	}
 }
 
-void handleMouseButtonPressed(Event event, Vector2i mousePosition, Sprite& volumeScalerMenu, Sprite& volumeScalerGame, Sprite& Button, bool& isDraggingMenu, bool& isDraggingGame, bool& onSettings, bool& onMenu,float menuVolume, float gameVolume, Resources& resources,bool& inPause) {
+void handleMouseButtonPressed(Event event, Vector2i mousePosition, Sprite& volumeScalerMenu, Sprite& volumeScalerGame, Sprite& Button, bool& isDraggingMenu, bool& isDraggingGame, bool& onSettings, bool& onMenu, float menuVolume, float gameVolume, Resources& resources, bool& inPause) {
 	if (event.mouseButton.button == Mouse::Left) {
 		if (volumeScalerMenu.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 			isDraggingMenu = true;
@@ -70,12 +71,13 @@ void handleMouseButtonPressed(Event event, Vector2i mousePosition, Sprite& volum
 			onMenu = true;
 			saveSettings(menuVolume, gameVolume);
 		}
-		else if (Button.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y)) && !onSettings) {
+		else if (Button.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y)) && inPause) {
 			inPause = false;
 			inGame = true;
 			resources.gameMusic.play();
 			saveSettings(menuVolume, gameVolume);
 		}
+		
 	}
 }
 
@@ -99,7 +101,7 @@ void handleMouseMoved(Event event, Vector2i mousePosition, bool isDraggingMenu, 
 		else {
 			float newVolume = std::max(0.f, std::min(100.f, ((mousePosition.x - 1295) / 400.0f) * 100.0f));
 			menuVolume = newVolume;
-			volumeScalerMenu.setPosition(1295 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 353);
+			volumeScalerMenu.setPosition(1295 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 383);
 			resources.menuMusic.setVolume(menuVolume);
 		}
 	}
@@ -114,7 +116,7 @@ void handleMouseMoved(Event event, Vector2i mousePosition, bool isDraggingMenu, 
 		else {
 			float newVolume = std::max(0.f, std::min(100.f, ((mousePosition.x - 130) / 400.0f) * 100.0f));
 			gameVolume = newVolume;
-			volumeScalerGame.setPosition(130 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 353);
+			volumeScalerGame.setPosition(130 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 383);
 			resources.gameMusic.setVolume(gameVolume);
 		}
 	}
@@ -134,11 +136,15 @@ int main() {
 
 	loadSettings(menuVolume, gameVolume);
 
-	Clock clock;
+	double gameTime = 0;
+
+	Clock clock, scoreCLock;
 	Resources resources;
 
-	Sprite road, startButton, backGround, endScreen, backGroundSettings, pauseMenu, pauseButton,menuButton,restartButton;
-	Sprite settingsButton, exitButton, volumeScalerMenu, volumeScalerGame, backButton;
+	resources.gameTimeText.setFillColor(Color::White);
+
+	Sprite road, startButton, backGround, endScreen, backGroundSettings, pauseMenu, pauseButton, menuButton, restartButton;
+	Sprite settingsButton, exitButton, volumeScalerMenu, volumeScalerGame, backButton,scoreTable;
 
 	startButton.setTexture(resources.tStartButton);
 	startButton.setPosition(0, 290);
@@ -146,12 +152,15 @@ int main() {
 	settingsButton.setTexture(resources.tSettingsButton);
 	settingsButton.setPosition(0, 490);
 
+	scoreTable.setTexture(resources.tScoreTable);
+	scoreTable.setPosition(0,0);
+
 	pauseButton.setTexture(resources.tPauseButton);
 	pauseButton.setOrigin(pauseButton.getGlobalBounds().width / 2, pauseButton.getGlobalBounds().height / 2);
 	pauseButton.setPosition(960, 390);
 
 	pauseMenu.setTexture(resources.tPauseMenu);
-	pauseMenu.setPosition(0, -30);
+	pauseMenu.setPosition(0, 0);
 
 	exitButton.setTexture(resources.tExitButton);
 	exitButton.setPosition(0, 680);
@@ -171,24 +180,34 @@ int main() {
 	backGroundSettings.setPosition(0, 0);
 	backGroundSettings.setTexture(resources.tBackGroundSettings);
 
-	restartButton.setTexture(resources.tStartButton);
-	restartButton.setPosition(0, 290);
+	restartButton.setTexture(resources.tRestartButton);
+	restartButton.setOrigin(restartButton.getGlobalBounds().width / 2, restartButton.getGlobalBounds().height / 2);
+	restartButton.setPosition(1360, 850);
 
-	menuButton.setTexture(resources.tStartButton);
-	menuButton.setPosition(0, 290);
+	menuButton.setTexture(resources.tMenuButton);
+	menuButton.setOrigin(menuButton.getGlobalBounds().width / 2, menuButton.getGlobalBounds().height / 2);
+	menuButton.setPosition(560, 850);
 
 	endScreen.setPosition(0, 0);
 	endScreen.setTexture(resources.tEndScreen);
 
+	resources.maxTime.setCharacterSize(150);
+	resources.maxTime.setPosition(500,230);
+
 	std::vector<Obstacle> obstacles;
 
 	Car car(resources.tcar);
-	car.sprite.setPosition(560, 770);
 
 	float CurrentFrame = 0;
 	road.setOrigin(0, 1080);
 	road.setPosition(0, 0);
 	road.setTexture(resources.tRoad);
+
+	std::ifstream inputFile("max_score.txt");
+	if (inputFile.is_open()) {
+		inputFile >> maxGameTime;
+		inputFile.close();
+	}
 
 	srand(static_cast<unsigned int>(time(0)));
 
@@ -197,6 +216,7 @@ int main() {
 	resources.gameMusic.setVolume(gameVolume);
 
 	while (window.isOpen()) {
+		
 		Event event;
 		while (window.pollEvent(event)) {
 			if (event.type == Event::Closed) {
@@ -215,6 +235,7 @@ int main() {
 						inGame = true;
 						resources.menuMusic.stop();
 						resources.gameMusic.play();
+						scoreCLock.restart();
 					}
 					else if (settingsButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 						onMenu = false;
@@ -238,30 +259,7 @@ int main() {
 				volumeScalerGame.setPosition(750 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 525);
 
 				if (event.type == Event::MouseButtonPressed) {
-					handleMouseButtonPressed(event, mousePosition, volumeScalerMenu, volumeScalerGame, backButton, isDraggingMenu, isDraggingGame, onSettings, onMenu, menuVolume, gameVolume, resources,inPause);
-				}
-				else if (event.type == Event::MouseButtonReleased) {
-					handleMouseButtonReleased(event, isDraggingMenu, isDraggingGame);
-				}
-				else if (event.type == Event::MouseMoved) {
-					handleMouseMoved(event, mousePosition, isDraggingMenu, isDraggingGame, menuVolume, gameVolume, volumeScalerMenu, volumeScalerGame, resources,onSettings);
-				}
-			}
-			else if (inGame) {
-				if (event.type == Event::KeyPressed) {
-					handleEscapeKey(event, inGame, inPause, resources);
-				}
-			}
-			else if (inPause) {
-
-				clock.restart();
-
-				hoverEffect(pauseButton, mousePosition);
-				volumeScalerMenu.setPosition(1295 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 353);
-				volumeScalerGame.setPosition(130 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 353);
-
-				if (event.type == Event::MouseButtonPressed) {
-					handleMouseButtonPressed(event, mousePosition, volumeScalerMenu, volumeScalerGame, pauseButton, isDraggingMenu, isDraggingGame, onSettings, onMenu, menuVolume, gameVolume, resources,inPause);
+					handleMouseButtonPressed(event, mousePosition, volumeScalerMenu, volumeScalerGame, backButton, isDraggingMenu, isDraggingGame, onSettings, onMenu, menuVolume, gameVolume, resources, inPause);
 				}
 				else if (event.type == Event::MouseButtonReleased) {
 					handleMouseButtonReleased(event, isDraggingMenu, isDraggingGame);
@@ -270,19 +268,64 @@ int main() {
 					handleMouseMoved(event, mousePosition, isDraggingMenu, isDraggingGame, menuVolume, gameVolume, volumeScalerMenu, volumeScalerGame, resources, onSettings);
 				}
 			}
-			else if (onEndScreen && event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
-				onEndScreen = false;
-				inGame = true;
-				obstacles.clear();
-				car.sprite.setPosition(560, 770);
-				acceleration = 0.00001;
+			else if (inGame) {
+				if (event.type == Event::KeyPressed) {
+					handleEscapeKey(event, inGame, inPause, resources);
+				}
+
 			}
-			else if (onEndScreen && event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
-				onEndScreen = false;
-				resources.gameMusic.play();
-				inGame = true;
+			else if (inPause) {
+
+				clock.restart();
+				scoreCLock.restart();
+
+				hoverEffect(pauseButton, mousePosition);
+				volumeScalerMenu.setPosition(1295 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 383);
+				volumeScalerGame.setPosition(130 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 383);
+
+				if (event.type == Event::MouseButtonPressed) {
+					handleMouseButtonPressed(event, mousePosition, volumeScalerMenu, volumeScalerGame, pauseButton, isDraggingMenu, isDraggingGame, onSettings, onMenu, menuVolume, gameVolume, resources, inPause);
+				}
+				else if (event.type == Event::MouseButtonReleased) {
+					handleMouseButtonReleased(event, isDraggingMenu, isDraggingGame);
+				}
+				else if (event.type == Event::MouseMoved) {
+					handleMouseMoved(event, mousePosition, isDraggingMenu, isDraggingGame, menuVolume, gameVolume, volumeScalerMenu, volumeScalerGame, resources, onSettings);
+				}
+			}
+			else if (onEndScreen) {
+
+				if (gameTime > maxGameTime) {
+					maxGameTime = gameTime;
+					std::ofstream outputFile("max_score.txt");
+					if (outputFile.is_open()) {
+						outputFile << maxGameTime;
+						outputFile.close();
+					}
+				}
+				gameTime = 0;
+				scoreCLock.restart();
+				clock.restart();
+
+				hoverEffect(menuButton, mousePosition);
+				hoverEffect(restartButton, mousePosition);
+
+				if (event.type == Event::MouseButtonPressed && menuButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
+					onEndScreen = false;
+					onMenu = true;
+					resources.gameMusic.play();
+				}
+				if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter || (event.type == Event::MouseButtonPressed && restartButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y)))) {
+					onEndScreen = false;
+					resources.gameMusic.play();
+					inGame = true;
+					
+				}
+				gameTime = 0;
+				scoreCLock.restart();
+				clock.restart();
 				obstacles.clear();
-				car.sprite.setPosition(560, 770);
+				car.moveX(1000);
 				acceleration = 0.00001;
 			}
 
@@ -324,12 +367,22 @@ int main() {
 		}
 
 		else if (inGame) {
+
+			resources.gameTimeText.setCharacterSize(72);
+			resources.gameTimeText.setPosition(10, -10);
+
 			if (acceleration < maxAcceleration) {
 				acceleration += 0.000010;
 			}
+			gameTime += scoreCLock.restart().asSeconds()*(1+acceleration);
+			resources.gameTimeText.setString(std::to_string(static_cast<int>(gameTime)));
 
 			float time = clock.getElapsedTime().asMicroseconds();
 			time /= 400;
+
+			//gameTime += clock.restart().asSeconds();
+			//resources.gameTimeText.setString("★" + std::to_string(static_cast<int>(gameTime)));
+
 			clock.restart();
 
 			roadY += roadSpeed * time * acceleration;
@@ -392,13 +445,21 @@ int main() {
 			for (const auto& obstacle : obstacles) {
 				window.draw(obstacle.getSprite());
 			}
+			window.draw(scoreTable);
+			window.draw(resources.gameTimeText);
 			window.display();
 		}
 		else if (onEndScreen) {
+			resources.maxTime.setString("PEKOPD: " + std::to_string(static_cast<int>(maxGameTime)));
+			resources.gameTimeText.setPosition(890, 490);
+			resources.gameTimeText.setCharacterSize(150);
+			car.setInitialPosition();
 			window.clear();
+			window.draw(endScreen);
+			window.draw(resources.gameTimeText);
+			window.draw(resources.maxTime);
 			window.draw(menuButton);
 			window.draw(restartButton);
-			window.draw(endScreen);
 			window.display();
 		}
 	}

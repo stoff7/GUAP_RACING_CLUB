@@ -5,6 +5,7 @@ class Car {
 public:
     Car(sf::Texture& t);
     void update(float time, float acceleration);
+    void setInitialPosition();
     sf::Sprite sprite;
     sf::FloatRect getRect() const;  // Метод для получения прямоугольника машины
     void moveX(float offset);       // Метод для перемещения по координате x
