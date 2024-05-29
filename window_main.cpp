@@ -313,7 +313,6 @@ int main() {
 				if (event.type == Event::MouseButtonPressed && menuButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 					onEndScreen = false;
 					onMenu = true;
-					resources.gameMusic.play();
 				}
 				if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter || (event.type == Event::MouseButtonPressed && restartButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y)))) {
 					onEndScreen = false;
