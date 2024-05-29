@@ -11,20 +11,20 @@
 using namespace sf;
 
 const float initialSpawnInterval = 10000.0f;
-const float minSpawnInterval = 2500.0f;
+const float minSpawnInterval = 3500.0f;
 int rightBoarder = 1419, leftBoarder = 390;
-float acceleration = 0.000005f;
-const float maxAcceleration = 0.8f;
-float maxScore = 0.0f;
+float acceleration = 0.000005;
+const float maxAcceleration = 0.5;
+float maxGameTime = 0;
 
-float roadY = 0.0f;
+float roadY = 0;
 float roadSpeed = 3.0f;
 
 bool onMenu = true, inGame = false, onEndScreen = false, onSettings = false, inPause = false;
 bool isDraggingMenu = false, isDraggingGame = false;
 float menuVolume = 50.0f, gameVolume = 50.0f;
 
-void saveSettings(float menuVolume, float gameVolume) {  //сохранение настроек
+void saveSettings(float menuVolume, float gameVolume) {
 	std::ofstream configFile("settings.cfg");
 	if (configFile.is_open()) {
 		configFile << "menuVolume " << menuVolume << std::endl;
@@ -33,7 +33,7 @@ void saveSettings(float menuVolume, float gameVolume) {  //сохранение 
 	}
 }
 
-void loadSettings(float& menuVolume, float& gameVolume) { // загрузка настроек
+void loadSettings(float& menuVolume, float& gameVolume) {
 	std::ifstream configFile("settings.cfg");
 	if (configFile.is_open()) {
 		std::string settingName;
@@ -49,7 +49,7 @@ void loadSettings(float& menuVolume, float& gameVolume) { // загрузка н
 	}
 }
 
-void hoverEffect(Sprite& button, Vector2i mousePosition, float scaleFactor = 1.1f) {  //эффект увеличения кнопки при наведении
+void hoverEffect(Sprite& button, Vector2i mousePosition, float scaleFactor = 1.1f) {
 	if (button.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 		button.setScale(scaleFactor, scaleFactor);
 	}
@@ -57,7 +57,7 @@ void hoverEffect(Sprite& button, Vector2i mousePosition, float scaleFactor = 1.1
 		button.setScale(1.0f, 1.0f);
 	}
 }
-//обработка нажатия лкм
+
 void handleMouseButtonPressed(Event event, Vector2i mousePosition, Sprite& volumeScalerMenu, Sprite& volumeScalerGame, Sprite& Button, bool& isDraggingMenu, bool& isDraggingGame, bool& onSettings, bool& onMenu, float menuVolume, float gameVolume, Resources& resources, bool& inPause) {
 	if (event.mouseButton.button == Mouse::Left) {
 		if (volumeScalerMenu.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
@@ -80,7 +80,7 @@ void handleMouseButtonPressed(Event event, Vector2i mousePosition, Sprite& volum
 		
 	}
 }
-//обработка при отпускании лкм
+
 void handleMouseButtonReleased(Event event, bool& isDraggingMenu, bool& isDraggingGame) {
 	if (event.mouseButton.button == Mouse::Left) {
 		isDraggingMenu = false;
@@ -88,7 +88,6 @@ void handleMouseButtonReleased(Event event, bool& isDraggingMenu, bool& isDraggi
 	}
 }
 
-//обработка переджижения мыши
 void handleMouseMoved(Event event, Vector2i mousePosition, bool isDraggingMenu, bool isDraggingGame, float& menuVolume, float& gameVolume, Sprite& volumeScalerMenu, Sprite& volumeScalerGame, Resources& resources, bool Settings) {
 	if (isDraggingMenu) {
 		if (Settings) {
@@ -96,7 +95,8 @@ void handleMouseMoved(Event event, Vector2i mousePosition, bool isDraggingMenu, 
 			menuVolume = newVolume;
 			volumeScalerMenu.setPosition(750 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 367);
 			resources.menuMusic.setVolume(menuVolume);
-
+			// volumeScalerMenu.setPosition(1295 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 353);
+			// volumeScalerGame.setPosition(130 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 353)
 		}
 		else {
 			float newVolume = std::max(0.f, std::min(100.f, ((mousePosition.x - 1295) / 400.0f) * 100.0f));
@@ -121,7 +121,7 @@ void handleMouseMoved(Event event, Vector2i mousePosition, bool isDraggingMenu, 
 		}
 	}
 }
-//обработка нажатия на esc во мремя игры
+
 void handleEscapeKey(Event event, bool& inGame, bool& inPause, Resources& resources) {
 	if (event.key.code == Keyboard::Escape) {
 		inGame = false;
@@ -132,20 +132,17 @@ void handleEscapeKey(Event event, bool& inGame, bool& inPause, Resources& resour
 
 
 int main() {
+	RenderWindow window(VideoMode(1920, 1080), "GUAP RACING CLUB!");
 
+	loadSettings(menuVolume, gameVolume);
 
-	RenderWindow window(VideoMode(1920, 1080), "GUAP RACING CLUB!"); //Создание окна игры
-
-	loadSettings(menuVolume, gameVolume); //загрузка натстроек громкости из файла
-
-	double score = 0; //переменная отвечающая за счёт в игре
+	double gameTime = 0;
 
 	Clock clock, scoreCLock;
 	Resources resources;
 
-	resources.gameTimeText.setFillColor(Color::White); //цвет счёта
+	resources.gameTimeText.setFillColor(Color::White);
 
-	//загрузка текстур для спрайтов и их настройка
 	Sprite road, startButton, backGround, endScreen, backGroundSettings, pauseMenu, pauseButton, menuButton, restartButton;
 	Sprite settingsButton, exitButton, volumeScalerMenu, volumeScalerGame, backButton,scoreTable;
 
@@ -201,66 +198,66 @@ int main() {
 
 	Car car(resources.tcar);
 
+	float CurrentFrame = 0;
 	road.setOrigin(0, 1080);
 	road.setPosition(0, 0);
 	road.setTexture(resources.tRoad);
 
-	std::ifstream inputFile("max_score.txt"); // загружаем максимальный счёт из файла
+	std::ifstream inputFile("max_score.txt");
 	if (inputFile.is_open()) {
-		inputFile >> maxScore;
+		inputFile >> maxGameTime;
 		inputFile.close();
 	}
 
 	srand(static_cast<unsigned int>(time(0)));
 
-	// установка уровня громкости
+	// Set initial volume levels
 	resources.menuMusic.setVolume(menuVolume);
 	resources.gameMusic.setVolume(gameVolume);
 
-	while (window.isOpen()) { //основной цикл игры
+	while (window.isOpen()) {
 		
 		Event event;
 		while (window.pollEvent(event)) {
-			if (event.type == Event::Closed) { //обрабока события закрытия окна
+			if (event.type == Event::Closed) {
 				window.close();
 			}
 
-			Vector2i mousePosition = Mouse::getPosition(window);  //получение позиции курсора
+			Vector2i mousePosition = Mouse::getPosition(window);
 			if (onMenu) {
 				hoverEffect(startButton, mousePosition);
 				hoverEffect(settingsButton, mousePosition);
 				hoverEffect(exitButton, mousePosition);
 
-				if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) { // отслеживание нажатия лкм
-					if (startButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) { //старт игры
+				if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {
+					if (startButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 						onMenu = false;
 						inGame = true;
 						resources.menuMusic.stop();
 						resources.gameMusic.play();
 						scoreCLock.restart();
 					}
-					else if (settingsButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) { //переход в меню настроек
+					else if (settingsButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 						onMenu = false;
 						onSettings = true;
 					}
-					else if (exitButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) { // выход
+					else if (exitButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 						window.close();
 					}
 				}
 
-				if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) { // старт игры
+				if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
 					onMenu = false;
 					inGame = true;
 					resources.menuMusic.stop();
 					resources.gameMusic.play();
 				}
 			}
-			else if (onSettings) { // меню настроек
+			else if (onSettings) {
 				hoverEffect(backButton, mousePosition);
-				volumeScalerMenu.setPosition(750 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 367); //установка позиции ползунков громкости для МЕНЮ
-				volumeScalerGame.setPosition(750 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 525);										   //ИГРЫ
+				volumeScalerMenu.setPosition(750 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 367);
+				volumeScalerGame.setPosition(750 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 525);
 
-				//настройка громкости
 				if (event.type == Event::MouseButtonPressed) {
 					handleMouseButtonPressed(event, mousePosition, volumeScalerMenu, volumeScalerGame, backButton, isDraggingMenu, isDraggingGame, onSettings, onMenu, menuVolume, gameVolume, resources, inPause);
 				}
@@ -271,20 +268,20 @@ int main() {
 					handleMouseMoved(event, mousePosition, isDraggingMenu, isDraggingGame, menuVolume, gameVolume, volumeScalerMenu, volumeScalerGame, resources, onSettings);
 				}
 			}
-			else if (inGame) { // в игре
+			else if (inGame) {
 				if (event.type == Event::KeyPressed) {
 					handleEscapeKey(event, inGame, inPause, resources);
 				}
 
 			}
-			else if (inPause) { // в паузе
+			else if (inPause) {
 
 				clock.restart();
-				scoreCLock.restart(); //для остановки времени и счётчика в игре
+				scoreCLock.restart();
 
 				hoverEffect(pauseButton, mousePosition);
-				volumeScalerMenu.setPosition(1295 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 383); 
-				volumeScalerGame.setPosition(130 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 383); //параметры громкости
+				volumeScalerMenu.setPosition(1295 + (menuVolume / 100.0f) * 450 - volumeScalerMenu.getGlobalBounds().width / 2, 383);
+				volumeScalerGame.setPosition(130 + (gameVolume / 100.0f) * 450 - volumeScalerGame.getGlobalBounds().width / 2, 383);
 
 				if (event.type == Event::MouseButtonPressed) {
 					handleMouseButtonPressed(event, mousePosition, volumeScalerMenu, volumeScalerGame, pauseButton, isDraggingMenu, isDraggingGame, onSettings, onMenu, menuVolume, gameVolume, resources, inPause);
@@ -297,19 +294,22 @@ int main() {
 				}
 			}
 			else if (onEndScreen) {
-				// записываем максимальный счёт
-				if (score > maxScore) {
-					maxScore = score;
+
+				if (gameTime > maxGameTime) {
+					maxGameTime = gameTime;
 					std::ofstream outputFile("max_score.txt");
 					if (outputFile.is_open()) {
-						outputFile << maxScore;
+						outputFile << maxGameTime;
 						outputFile.close();
 					}
 				}
-				
+				gameTime = 0;
+				scoreCLock.restart();
+				clock.restart();
+
 				hoverEffect(menuButton, mousePosition);
 				hoverEffect(restartButton, mousePosition);
-				//обработка нажатия на кнопки
+
 				if (event.type == Event::MouseButtonPressed && menuButton.getGlobalBounds().contains(static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y))) {
 					onEndScreen = false;
 					onMenu = true;
@@ -320,7 +320,7 @@ int main() {
 					inGame = true;
 					
 				}
-				score = 0; //обнуление параметров перед новой попыткой
+				gameTime = 0;
 				scoreCLock.restart();
 				clock.restart();
 				obstacles.clear();
@@ -331,11 +331,10 @@ int main() {
 		}
 
 		if (onMenu) {
-			if (resources.menuMusic.getStatus() != sf::Music::Playing) { //включение музыки
+			if (resources.menuMusic.getStatus() != sf::Music::Playing) {
 				resources.menuMusic.play();
 			}
-			//отрисовка
-			window.clear(); 
+			window.clear();
 			window.draw(backGround);
 			window.draw(startButton);
 			window.draw(settingsButton);
@@ -356,7 +355,7 @@ int main() {
 			window.clear();
 			window.draw(road);
 			window.draw(car.sprite);
-			for (const auto& obstacle : obstacles) { //отрисовка препятствий
+			for (const auto& obstacle : obstacles) {
 				window.draw(obstacle.getSprite());
 			}
 			window.draw(pauseMenu);
@@ -368,26 +367,30 @@ int main() {
 
 		else if (inGame) {
 
-			resources.gameTimeText.setCharacterSize(72); //установка размера текста
-			resources.gameTimeText.setPosition(10, -10);		   //позиции
+			resources.gameTimeText.setCharacterSize(72);
+			resources.gameTimeText.setPosition(10, -10);
 
-			if (acceleration < maxAcceleration) { //ускорение игры
+			if (acceleration < maxAcceleration) {
 				acceleration += 0.000010;
 			}
-			score += scoreCLock.restart().asSeconds()*(1+acceleration); //счёт
-			resources.gameTimeText.setString(std::to_string(static_cast<int>(score)));
+			gameTime += scoreCLock.restart().asSeconds()*(1+acceleration);
+			resources.gameTimeText.setString(std::to_string(static_cast<int>(gameTime)));
 
-			float time = clock.getElapsedTime().asMicroseconds(); 
-			time /= 400.0f; //время для передвижения в игре
+			float time = clock.getElapsedTime().asMicroseconds();
+			time /= 400;
+
+			//gameTime += clock.restart().asSeconds();
+			//resources.gameTimeText.setString("★" + std::to_string(static_cast<int>(gameTime)));
+
 			clock.restart();
 
-			roadY += roadSpeed * time * acceleration; //движение дороги
+			roadY += roadSpeed * time * acceleration;
 			if (roadY >= 1080) {
 				roadY -= 1080;
 			}
 			road.setPosition(0, roadY);
 
-			static float spawnTimer = 0; //время для появления препятствий
+			static float spawnTimer = 0;
 			spawnTimer += time;
 			float spawnInterval = initialSpawnInterval - ((initialSpawnInterval - minSpawnInterval) * (acceleration / maxAcceleration));
 
@@ -396,7 +399,7 @@ int main() {
 				spawnTimer = 0;
 			}
 
-			for (auto& obstacle : obstacles) { //передвижение препятствий
+			for (auto& obstacle : obstacles) {
 				float speedMultiplier;
 				float x = obstacle.getSprite().getPosition().x;
 				if ((x >= 500 && x <= 665)) {
@@ -414,24 +417,28 @@ int main() {
 				obstacle.update(time, acceleration, speedMultiplier);
 			}
 
-			Obstacle::removeOffscreenObstacles(obstacles); //удаление препятствий вне экрана
+			Obstacle::removeOffscreenObstacles(obstacles);
 
-			if (Keyboard::isKeyPressed(Keyboard::A)) { // передвижение вправо/влево
-				car.moveX(-0.7f);
+			CurrentFrame += 0.006 * time;
+			if (CurrentFrame > 3) {
+				CurrentFrame -= 3;
+			}
+			if (Keyboard::isKeyPressed(Keyboard::A)) {
+				car.moveX(-0.7);
 			}
 			if (Keyboard::isKeyPressed(Keyboard::D)) {
-				car.moveX(0.7f);
+				car.moveX(0.7);
 			}
 
 			car.update(time, acceleration);
 
-			if (Obstacle::checkCollision(car, obstacles)) { //обработка столкновений
+			if (Obstacle::checkCollision(car, obstacles)) {
 				inGame = false;
 				onEndScreen = true;
 				resources.gameMusic.stop();
 			}
 
-			window.clear(); //отрисовка
+			window.clear();
 			window.draw(road);
 			window.draw(car.sprite);
 			for (const auto& obstacle : obstacles) {
@@ -442,7 +449,7 @@ int main() {
 			window.display();
 		}
 		else if (onEndScreen) {
-			resources.maxTime.setString("PEKOPD: " + std::to_string(static_cast<int>(maxScore)));
+			resources.maxTime.setString("PEKOPD: " + std::to_string(static_cast<int>(maxGameTime)));
 			resources.gameTimeText.setPosition(890, 490);
 			resources.gameTimeText.setCharacterSize(150);
 			car.setInitialPosition();
@@ -459,4 +466,4 @@ int main() {
 	saveSettings(menuVolume, gameVolume);
 
 	return 0;
-}	
+}
